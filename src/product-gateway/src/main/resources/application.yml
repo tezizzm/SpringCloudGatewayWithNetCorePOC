@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: product-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: green
+          uri: http://localhost:5000
+          predicates:
+            - Path=/Inventory
+            - Weight=api,8
+          filters:
+            - StripPrefix=1
+            - RemoveResponseHeader=Server
+            - PrefixPath=/api/products/blueinventory
+        - id: blue
+          uri: http://localhost:5000
+          predicates:
+            - Path=/Inventory
+            - Weight=api,2
+          filters:
+            - StripPrefix=1
+            - RemoveResponseHeader=Server
+            - PrefixPath=/api/products/greeninventory/
+        - id: getProduct
+          uri: http://localhost:5000
+          predicates:
+            - Path=/Products/{segment}
+          filters:
+            - StripPrefix=2
+            - RemoveResponseHeader=Server
+            - SetPath=/api/products/{segment}
+            - name: Hystrix
+              args:
+                name: fetchFallProduct
+                fallbackUri: forward:/fallback
+        - id: product-fallback
+          uri: http://localhost:5000
+          predicates:
+            - Path=/fallback
+          filters:
+            - StripPrefix=1
+            - RemoveResponseHeader=Server
+            - PrefixPath=/api/products/DefaultProduct
+        - id: getProducts
+          uri: http://localhost:5000
+          predicates:
+            - Path=/Products
+          filters:
+            - StripPrefix=1
+            - RemoveResponseHeader=Server
+            - PrefixPath=/api/products
